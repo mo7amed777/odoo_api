@@ -5,7 +5,7 @@ final orpc = OdooClient('https://eservices2.odoo.com');
 void main() async {
   await orpc.authenticate('eservices2', 'mohamed010279316@gmail.com', '123456');
   final res = await orpc.callRPC('/web/session/modules', 'call', {});
-  print('Installed modules: \n' + res.toString());
+  print('Installed modules: \n$res');
   runApp(MyApp());
 }
 
@@ -37,9 +37,9 @@ class _HomePageState extends State<HomePage> {
       'method': 'create',
       'args': [
         {
-          'name': "Ticket 50",
+          'name': "Ticket Created",
           'phone': '+10551541515',
-          'expected_revenue': '500',
+          'expected_revenue': '140',
           'email_from': 'User@Email.com',
         },
       ],
@@ -83,16 +83,34 @@ class _HomePageState extends State<HomePage> {
       trailing: Text(record['id'].toString()),
       onTap: () async {
         //Set Ticket to Won Stage
+        // await orpc.callKw(
+        //   {
+        //     'model': 'crm.lead',
+        //     'method': 'action_set_won_rainbowman',
+        //     'args': [
+        //       record['id'], // Ticket ID
+        //     ],
+        //     'kwargs': {},
+        //   },
+        // );
+
+        //Stage ID => Starting from 1 to the end Stage ID
+        // 1 => New | 2 => Qualified | 4 => won
+
         await orpc.callKw(
           {
             'model': 'crm.lead',
-            'method': 'action_set_won_rainbowman',
+            'method': 'write',
             'args': [
-              record['id'], // Ticket ID
+              record['id'],
+              {'stage_id': 4},
             ],
             'kwargs': {},
           },
         );
+
+// Log the updated lead ID
+        print('Updated lead ID: ${record['id']}');
       },
     );
   }
@@ -101,15 +119,25 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('CRM Modules'),
+        title: const Text('CRM Modules'),
       ),
-      floatingActionButton:
-          FloatingActionButton(onPressed: () => createContact()),
+      floatingActionButton: FloatingActionButton(
+        elevation: 0.0,
+        onPressed: () => createContact(),
+        child: const Icon(
+          Icons.add,
+        ),
+      ),
       body: RefreshIndicator(
         onRefresh: () {
           fetchContacts();
-          setState(() {});
-          return Future.delayed(const Duration(milliseconds: 100));
+
+          return Future.delayed(
+            const Duration(milliseconds: 100),
+            () {
+              setState(() {});
+            },
+          );
         },
         child: FutureBuilder(
             future: fetchContacts(),
@@ -123,9 +151,10 @@ class _HomePageState extends State<HomePage> {
                       return buildListItem(record);
                     });
               } else {
-                if (snapshot.hasError)
+                if (snapshot.hasError) {
                   return const Text('Unable to fetch data');
-                return const CircularProgressIndicator();
+                }
+                return const Center(child: CircularProgressIndicator());
               }
             }),
       ),
